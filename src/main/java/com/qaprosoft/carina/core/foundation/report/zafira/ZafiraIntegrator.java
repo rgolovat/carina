@@ -14,6 +14,7 @@ import com.qaprosoft.carina.core.foundation.retry.RetryCounter;
 import com.qaprosoft.carina.core.foundation.utils.Configuration;
 import com.qaprosoft.carina.core.foundation.utils.Configuration.Parameter;
 import com.qaprosoft.carina.core.foundation.utils.R;
+import com.qaprosoft.carina.core.foundation.utils.SpecialKeywords;
 import com.qaprosoft.carina.core.foundation.utils.configuration.ArgumentType;
 import com.qaprosoft.carina.core.foundation.utils.configuration.ConfigurationBin;
 import com.qaprosoft.carina.core.foundation.utils.marshaller.MarshallerHelper;
@@ -177,7 +178,7 @@ public class ZafiraIntegrator {
 				//read all test results from Zafira
 				tests = zc.getTestRunResults(run.getId()).getObject();
 				
-/*				//analyze test results and disable rerun_failures feature if tests contains non-unique test methods from DataProvider
+				//analyze test results and disable rerun_failures feature if tests contains non-unique test methods from DataProvider
 				if (rerunFailures) {
 					for (TestType test : tests) {
 						if (test.getName().contains(SpecialKeywords.INV_COUNT)) {
@@ -187,7 +188,7 @@ public class ZafiraIntegrator {
 						}
 					}
 				}
-*/			}
+			}
 		} catch (Exception e) {
 			isRegistered = false;
 			LOGGER.error("Undefined error during test run registration!", e);
