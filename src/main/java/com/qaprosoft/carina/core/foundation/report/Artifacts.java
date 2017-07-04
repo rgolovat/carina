@@ -21,7 +21,6 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.qaprosoft.carina.core.foundation.utils.R;
 import com.qaprosoft.zafira.models.dto.TestArtifactType;
 
 /*

@@ -1,6 +1,8 @@
 package com.qaprosoft.carina.core.foundation.report;
 
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,8 +139,12 @@ public class ZafiraConfigurator implements IConfigurator
 
 	@Override
 	public Set<TestArtifactType> getArtifacts(ITestResult test) {
-		Artifacts.add("Log", ReportContext.getTestLogLink(getTestName(test)));
-		Artifacts.add("Demo", ReportContext.getTestScreenshotsLink(getTestName(test)));
+		Calendar calendar = Calendar.getInstance();
+		calendar.add(Calendar.DATE, 30);
+        Date expires_at = calendar.getTime();
+        
+		Artifacts.add("Log", ReportContext.getTestLogLink(getTestName(test)), expires_at);
+		Artifacts.add("Demo", ReportContext.getTestScreenshotsLink(getTestName(test)), expires_at);
 		
 		return Artifacts.getArtifacts();
 	}
