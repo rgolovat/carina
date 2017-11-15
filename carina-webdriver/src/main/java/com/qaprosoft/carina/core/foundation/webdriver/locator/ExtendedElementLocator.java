@@ -18,14 +18,15 @@ package com.qaprosoft.carina.core.foundation.webdriver.locator;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.OutputType;
 import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -34,15 +35,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.qaprosoft.alice.models.dto.RecognitionMetaType;
+import com.qaprosoft.carina.core.foundation.report.ReportContext;
 import com.qaprosoft.carina.core.foundation.webdriver.DriverPool;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.FindByAI;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.Label;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.impl.AliceRecognition;
+import com.qaprosoft.carina.core.foundation.webdriver.augmenter.DriverAugmenter;
 import com.qaprosoft.carina.core.foundation.webdriver.decorator.annotations.Predicate;
 
 import io.appium.java_client.MobileBy;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
+import ru.yandex.qatools.ashot.AShot;
+import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
 
 /**
  * The default element locator, which will lazily locate an element or an element list on a page. This class is designed
@@ -63,7 +68,7 @@ public class ExtendedElementLocator implements ElementLocator
 
 	private String aiCaption;
 	private Label aiLabel;
-
+	
 	/**
 	 * Creates a new element locator.
 	 * 
@@ -202,13 +207,25 @@ public class ExtendedElementLocator implements ElementLocator
 	private WebElement findElementByAI(WebDriver drv, Label label, String caption)
 	{
 		WebElement element = null;
-		File screen = ((TakesScreenshot)	drv).getScreenshotAs(OutputType.FILE);
-		RecognitionMetaType  result = AliceRecognition.INSTANCE.recognize(aiLabel, aiCaption, screen);
+		
+		File screen = new File(ReportContext.getTempDir() + File.separator +  UUID.randomUUID().toString() + ".png");
+		try
+		{
+			screen.createNewFile();
+			ImageIO.write(new AShot().shootingStrategy(ShootingStrategies.viewportPasting(100)).takeScreenshot(new DriverAugmenter().augment(drv)).getImage(), "PNG", screen);
+		}
+		catch (Exception e) {
+			LOGGER.error(e.getMessage());
+		}
+		RecognitionMetaType result = AliceRecognition.INSTANCE.recognize(aiLabel, aiCaption, screen, drv.getCurrentUrl());
+		
 		if(result != null)
 		{
 			int x = (result.getTopleft().getX() + result.getBottomright().getX()) / 2;
 			int y = (result.getTopleft().getY() + result.getBottomright().getY()) / 2;
+			((JavascriptExecutor) drv).executeScript("window.scrollTo(0, 0);");
 			element = (WebElement) ((JavascriptExecutor) drv).executeScript("return document.elementFromPoint(arguments[0], arguments[1])", x, y);
+			highligh(drv, result, element);
 		}
 		else
 		{
@@ -278,5 +295,63 @@ public class ExtendedElementLocator implements ElementLocator
 		}
 
 		throw new RuntimeException(String.format("Unable to generate By using locator: '%s'!", locator));
+	}
+	
+	private void highligh(WebDriver drv, RecognitionMetaType recognition, WebElement element)
+	{
+		final int tlX = recognition.getTopleft().getX();
+		final int tlY = recognition.getTopleft().getY();
+		
+		final int brX = recognition.getBottomright().getX();
+		final int brY = recognition.getBottomright().getY();
+		
+		final int widht = recognition.getBottomright().getX() - recognition.getTopleft().getX();
+		final int height = recognition.getBottomright().getY() - recognition.getTopleft().getY();
+		
+		try
+		{
+			final long timeout = 5000;
+			
+			String js =  
+					"var x = " + tlX + ";" +
+					"var y = " + tlY + ";" +
+					"var x2 = " + brX + ";" +
+					"var y2 = " + brY + ";" +
+					"var width = " + widht + ";" +
+					"var height = " + height + ";" +
+					"var canvas = document.createElement('canvas');" +
+					"canvas.style.width='100%';" +
+					"canvas.style.height='100%';" +
+					"canvas.width = window.innerWidth;" +
+					"canvas.height = window.innerHeight;" +
+					"canvas.style.position='absolute';" +
+					"canvas.style.left=0;" +
+					"canvas.style.top=0;" +
+					"canvas.style.zIndex=100000;" +
+					"canvas.style.pointerEvents='none';" +
+					"document.body.appendChild(canvas);" +
+					"var context = canvas.getContext('2d');" +
+					"context.fillStyle = 'red';" +
+					"context.strokeStyle = 'red';" +
+					"context.strokeRect(x, y, width, height);" +
+					"context.beginPath();" +
+					"context.arc((x + x2) / 2, (y + y2) / 2, 5, 0, Math.PI * 2, true);" +
+					"context.moveTo(x, y);" +
+				    "context.lineTo(x2, y2);" +
+				    "context.moveTo(x, y2);" +
+				    "context.lineTo(x2, y);" + 
+				    "context.stroke();" +
+				    "context.font = '20px Courier red';" +
+				    "context.fillText('" + recognition.getLabel().toUpperCase()  + ": " + recognition.getCaption() + " " + recognition.getConfidence() * 100 + "%', x, y - 10);" + 
+				    "arguments[0].style.border='3px solid green';" +
+				    "setTimeout(function () { canvas.remove(); }, " + timeout + ");";
+				((JavascriptExecutor) drv).executeScript(js, element);
+				
+				Thread.sleep(timeout);
+		}
+		catch (Exception e) 
+		{
+			LOGGER.error(e.getMessage());
+		}
 	}
 }

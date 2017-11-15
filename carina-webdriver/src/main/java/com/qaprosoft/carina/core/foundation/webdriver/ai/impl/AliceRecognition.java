@@ -56,6 +56,10 @@ public class AliceRecognition implements IRecognition
 	
 	private AliceClient client;
 	
+	private String urlCache = "";
+	
+	private Response<List<RecognitionMetaType>> responseCache = null;
+	
 	private AliceRecognition()
 	{
 		try
@@ -83,13 +87,24 @@ public class AliceRecognition implements IRecognition
 		}
 	};
 	
-	@Override
-	public RecognitionMetaType recognize(Label label, String caption, File screenshot)
+	public RecognitionMetaType recognize(Label label, String caption, File screenshot, String url)
 	{
 		RecognitionMetaType result = null;
 
 		// send request anyway to Alice for recognition to record this particular screen
-		Response<List<RecognitionMetaType>> response = client.recognize(screenshot);
+		Response<List<RecognitionMetaType>> response = null;
+		
+		if(urlCache.equals(url))
+		{
+			response = responseCache;
+		}
+		else
+		{
+			response = client.recognize(screenshot);
+			
+			responseCache = response;
+			urlCache = url;
+		}
 		
 		// try to search only if AI label and caption are provided
 		if(response.getStatus() == 200 && label != null && caption != null) 
@@ -104,5 +119,11 @@ public class AliceRecognition implements IRecognition
 	public boolean isEnabled()
 	{
 		return enabled;
+	}
+
+	@Override
+	public RecognitionMetaType recognize(Label label, String caption, File screenshot) 
+	{
+		return recognize(label, caption, screenshot, null);
 	}
 }
