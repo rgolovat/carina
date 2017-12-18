@@ -605,10 +605,18 @@ public class AndroidService {
     public boolean setDeviceLanguage(String language, boolean changeConfig, int waitTime) {
         boolean status = false;
 
-        language = language.toLowerCase();
+        String initLanguage = language;
 
-        if (getDeviceLanguage().toLowerCase().contains(language)) {
-            LOGGER.info("Device already have expected language.");
+        String currentAndroidVersion = DevicePool.getDevice().getOsVersion();
+
+        LOGGER.info("Do not concat language for Android. Keep: " + language);
+        language=language.replace("_","-");
+        LOGGER.info("Refactor language to : " + language);
+
+        String actualDeviceLanguage = getDeviceLanguage();
+
+        if (language.contains(actualDeviceLanguage.toLowerCase()) || actualDeviceLanguage.toLowerCase().contains(language)) {
+            LOGGER.info("Device already have expected language: " + actualDeviceLanguage);
             return true;
         }
 
@@ -639,26 +647,28 @@ public class AndroidService {
         if (changeConfig) {
             String loc;
             String lang;
-            if (language.contains("_")) {
-                lang = language.split("_")[0];
-                loc = language.split("_")[1];
+            if (initLanguage.contains("_")) {
+                lang = initLanguage.split("_")[0];
+                loc = initLanguage.split("_")[1];
             } else {
-                lang = language;
-                loc = language;
+                lang = initLanguage;
+                loc = initLanguage;
             }
             LOGGER.info("Update config.properties locale to '" + loc + "' and language to '" + lang + "'.");
             R.CONFIG.put("locale", loc);
             R.CONFIG.put("language", lang);
         }
 
-        if (getDeviceLanguage().toLowerCase().contains(language)) {
+        actualDeviceLanguage = getDeviceLanguage();
+        LOGGER.info("Actual Device Language: " + actualDeviceLanguage);
+        if (language.contains(actualDeviceLanguage.toLowerCase()) || actualDeviceLanguage.toLowerCase().contains(language)) {
             status = true;
         } else {
             if (getDeviceLanguage().isEmpty()) {
                 LOGGER.info("Adb return empty response without errors.");
                 status = true;
             } else {
-                String currentAndroidVersion = DevicePool.getDevice().getOsVersion();
+                currentAndroidVersion = DevicePool.getDevice().getOsVersion();
                 LOGGER.info("currentAndroidVersion=" + currentAndroidVersion);
                 if (currentAndroidVersion.contains("7.")) {
                     LOGGER.info("Adb return language command do not work on some Android 7+ devices." + " Check that there are no error.");
@@ -675,7 +685,11 @@ public class AndroidService {
      * @return String
      */
     public String getDeviceLanguage() {
-        return executeAdbCommand("shell getprop persist.sys.language");
+        String locale = executeAdbCommand("shell getprop persist.sys.language");
+        if(locale.isEmpty()) {
+            locale = executeAdbCommand("shell getprop persist.sys.locale");
+        }
+        return locale;
     }
     // End Language Change section
 
@@ -967,7 +981,7 @@ public class AndroidService {
 
         String currentAndroidVersion = DevicePool.getDevice().getOsVersion();
         LOGGER.info("currentAndroidVersion=" + currentAndroidVersion);
-        if (currentAndroidVersion.contains("7.") || (DevicePool.getDevice().getType() == DeviceType.Type.ANDROID_TABLET)) {
+        if (currentAndroidVersion.contains("7.") || (DevicePool.getDevice().getDeviceType() == DeviceType.Type.ANDROID_TABLET)) {
             LOGGER.info("TimeZone changing for Android 7+ and tablets works only by TimeZone changer apk.");
             workflow = ChangeTimeZoneWorkflow.APK;
         }

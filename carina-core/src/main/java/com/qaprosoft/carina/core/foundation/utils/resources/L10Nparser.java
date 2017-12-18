@@ -18,6 +18,7 @@ package com.qaprosoft.carina.core.foundation.utils.resources;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -92,6 +93,8 @@ public class L10Nparser {
 	public static Properties prop = new Properties();
 
 	public static String propFileName = "";
+
+	private static String encoding = "ISO-8859-1";
 
 	protected static final int BASIC_WAIT_SHORT_TIMEOUT = 5;
 
@@ -232,7 +235,7 @@ public class L10Nparser {
 	 * @return String with path + PropertyFileName
 	 */
 	private static String getPropertyFileName(String localName) {
-		String ret = "";
+		String ret;
 		String add_new_loc_path = "null";
 		String add_new_loc_name = "null";
 		try {
@@ -271,7 +274,7 @@ public class L10Nparser {
 	/**
 	 * check Localization Text. Will work ONLY if locKey is equal to element
 	 * Name and element is Public
-	 * 
+	 *
 	 * @param elem
 	 *            ExtendedWebElement
 	 * @param skipMissed
@@ -279,10 +282,26 @@ public class L10Nparser {
 	 * @return boolean
 	 */
 	public static boolean checkLocalizationText(ExtendedWebElement elem, boolean skipMissed) {
-		if (elem.isElementPresent(BASIC_WAIT_SHORT_TIMEOUT)) {
+		return checkLocalizationText(elem, skipMissed, BASIC_WAIT_SHORT_TIMEOUT, false);
+	}
+
+	/**
+	 * check Localization Text. Will work ONLY if locKey is equal to element
+	 * Name and element is Public
+	 * 
+	 * @param elem
+	 *            ExtendedWebElement
+	 * @param skipMissed
+	 *            - boolean - if true - will ignore missed elements.
+	 * @param timeout - timeout for element presence waiting.
+	 * @param skipPunctuationAndNumbers - if true - there will be no numbers and tricky punctuation in l10n values
+	 * @return boolean
+	 */
+	public static boolean checkLocalizationText(ExtendedWebElement elem, boolean skipMissed, int timeout, boolean skipPunctuationAndNumbers) {
+		if (elem.isElementPresent(timeout)) {
 			String elemText = elem.getText();
 			String locKey = elem.getName();
-			return checkLocalizationText(elemText, locKey);
+			return checkLocalizationText(elemText, locKey, skipPunctuationAndNumbers);
 		} else {
 			LOGGER.info("Expected element not present. Please check: " + elem);
 			if (skipMissed) {
@@ -296,7 +315,7 @@ public class L10Nparser {
 	/**
 	 * check Localization Text. Will work ONLY if locKey is equal to element
 	 * Name and element is Public
-	 * 
+	 *
 	 * @param elem
 	 *            ExtendedWebElement
 	 * @param locKey
@@ -304,12 +323,27 @@ public class L10Nparser {
 	 * @return boolean
 	 */
 	public static boolean checkLocalizationText(ExtendedWebElement elem, String locKey) {
-		if (elem.isElementPresent(BASIC_WAIT_SHORT_TIMEOUT)) {
+		return checkLocalizationText(elem, locKey, BASIC_WAIT_SHORT_TIMEOUT, false);
+	}
+
+	/**
+	 * check Localization Text. Will work ONLY if locKey is equal to element
+	 * Name and element is Public
+	 * 
+	 * @param elem
+	 *            ExtendedWebElement
+	 * @param locKey
+	 *            String
+	 * @param timeout - timeout for element presence waiting.
+	 * @param skipPunctuationAndNumbers - if true - there will be no numbers and tricky punctuation in l10n values
+	 * @return boolean
+	 */
+	public static boolean checkLocalizationText(ExtendedWebElement elem, String locKey, int timeout, boolean skipPunctuationAndNumbers) {
+		if (elem.isElementPresent(timeout)) {
 			String elemText = elem.getText();
-			return checkLocalizationText(elemText, locKey);
+			return checkLocalizationText(elemText, locKey, skipPunctuationAndNumbers);
 		} else {
 			LOGGER.info("Expected element not present. Please check:" + elem);
-
 		}
 		return false;
 	}
@@ -321,28 +355,92 @@ public class L10Nparser {
 	 *            String
 	 * @param locKey
 	 *            String
+	 * @param skipPunctuationAndNumbers - if true - there will be no numbers and
+	 *                                    tricky punctuation in l10n values and in checking.
+	 *                                    As well as validation will be case insensitive.
 	 * @return boolean
 	 */
-	public static boolean checkLocalizationText(String expectedText, String locKey) {
-		boolean ret = false;
-		ret = expectedText.contains(L10N.getText(locKey, actualLocale));
-		if (!ret) {
+	public static boolean checkLocalizationText(String expectedText, String locKey, boolean skipPunctuationAndNumbers) {
+		String l10n_default = L10N.getText(locKey, actualLocale);
+		String l10n_utf = L10N.getUTFText(locKey, actualLocale);
+		boolean ret,ret_utf;
+
+		if(skipPunctuationAndNumbers) {
+			ret = removeNumbersAndPunctuation(expectedText).toLowerCase().contains(removeNumbersAndPunctuation(l10n_default).toLowerCase());
+			ret_utf = removeNumbersAndPunctuation(expectedText).toLowerCase().contains(removeNumbersAndPunctuation(l10n_utf).toLowerCase());
+		} else {
+			ret = expectedText.contains(l10n_default);
+			ret_utf = expectedText.contains(l10n_utf);
+		}
+
+		if (!ret && !ret_utf) {
 			if (!newLocalization) {
-				LOGGER.error("Actual text should be localized and be equal to: '" + L10N.getText(locKey, actualLocale)
-						+ "'. But currently it is '" + expectedText + "'.");
-				assertErrorMsg = "Expected: '" + L10N.getText(locKey, actualLocale) + "', length="
-						+ L10N.getText(locKey, actualLocale).length() + ". Actually: '" + expectedText + "', length="
-						+ expectedText.length() + ".";
+				LOGGER.error(
+						"Actual text should be localized and be equal to: '" + l10n_default + "'. Or to: '" + l10n_utf + "'. But currently it is '"
+								+ expectedText + "'.");
+				assertErrorMsg =
+						"Expected: '" + l10n_default + "', length=" + l10n_default.length() + ". Or '" + l10n_utf + "', length=" + l10n_utf.length()
+								+ ". Actually: '" + expectedText + "', length=" + expectedText.length() + ".";
+				return false;
 			} else {
+				if(skipPunctuationAndNumbers) {
+					expectedText = removeNumbersAndPunctuation(expectedText);
+				}
 				String newItem = locKey + "=" + expectedText;
 				LOGGER.info("Making new localization string: " + newItem);
 				newLocList.add(newItem);
 				prop.setProperty(locKey, expectedText);
-
 				return true;
 			}
+		} else {
+			if (ret) {
+				LOGGER.debug("Found localization text '" + expectedText + "' in ISO-8859-1 encoding : " + l10n_default);
+			}
+			if (ret_utf) {
+				LOGGER.info("Found localization text '" + expectedText + "' in UTF-8 encoding : " + l10n_utf);
+			}
+			return true;
 		}
-		return ret;
+	}
+
+	/**
+	 * removeNumbersAndPunctuation from L10n string
+	 * @param str String
+	 * @return String
+	 */
+	private static String removeNumbersAndPunctuation(String str) {
+		try {
+			str = str.replaceAll("[0-9]", "");
+			str = str.replace("!", "").replace("\u0085", "").replace("…", "");
+		} catch (Exception e) {
+			LOGGER.error(e);
+		}
+		return str;
+	}
+
+	/**
+	 * check MultipleLocalization
+	 *
+	 * @param localizationCheckList
+	 *            - ExtendedWebElement[] should be set on required page with all
+	 *            needed public elements
+	 * @return boolean
+	 */
+	public static boolean checkMultipleLocalization(ExtendedWebElement[] localizationCheckList) {
+		return checkMultipleLocalization(localizationCheckList, BASIC_WAIT_SHORT_TIMEOUT, false);
+	}
+
+	/**
+	 * check MultipleLocalization
+	 *
+	 * @param localizationCheckList
+	 *            - ExtendedWebElement[] should be set on required page with all
+	 *            needed public elements
+	 * @param skipPunctuationAndNumbers - if true - there will be no numbers and tricky punctuation in l10n values
+	 * @return boolean
+	 */
+	public static boolean checkMultipleLocalization(ExtendedWebElement[] localizationCheckList,  boolean skipPunctuationAndNumbers) {
+		return checkMultipleLocalization(localizationCheckList, BASIC_WAIT_SHORT_TIMEOUT, false);
 	}
 
 	/**
@@ -351,14 +449,16 @@ public class L10Nparser {
 	 * @param localizationCheckList
 	 *            - ExtendedWebElement[] should be set on required page with all
 	 *            needed public elements
+	 * @param timeout - timeout for element presence waiting.
+	 * @param skipPunctuationAndNumbers - if true - there will be no numbers and tricky punctuation in l10n values
 	 * @return boolean
 	 */
-	public static boolean checkMultipleLocalization(ExtendedWebElement[] localizationCheckList) {
+	public static boolean checkMultipleLocalization(ExtendedWebElement[] localizationCheckList, int timeout, boolean skipPunctuationAndNumbers) {
 		boolean ret = true;
 		String returnAssertErrorMsg = "";
 		assertErrorMsg = "";
 		for (ExtendedWebElement elem : localizationCheckList) {
-			if (!checkLocalizationText(elem)) {
+			if (!checkLocalizationText(elem,true, timeout, skipPunctuationAndNumbers)) {
 				ret = false;
 				returnAssertErrorMsg = returnAssertErrorMsg + " \n" + assertErrorMsg;
 			}
@@ -391,9 +491,15 @@ public class L10Nparser {
 					LOGGER.info("propFileName:=" + propFileName);
 				}
 
-				OutputStream output = new FileOutputStream(propFileName);
-				prop.store(output, null);
-				output.close();
+				String encoding = getLocalizationSaveEncoding();
+				if (encoding.contains("UTF")) {
+					prop.store(new OutputStreamWriter(
+							new FileOutputStream(propFileName), "UTF-8"), null);
+				} else {
+					OutputStream output = new FileOutputStream(propFileName);
+					prop.store(output, null);
+					output.close();
+				}
 
 			} catch (Exception e) {
 				LOGGER.error(e);
@@ -402,7 +508,20 @@ public class L10Nparser {
 		} else {
 			LOGGER.debug("There is no new localization for saving.");
 		}
+	}
 
+	/**
+	 * get Localization Save Encoding
+	 * @return String
+	 */
+	private static String getLocalizationSaveEncoding() {
+		try {
+			encoding = Configuration.get(Parameter.ADD_NEW_LOCALIZATION_ENCODING);
+		} catch (Exception e) {
+			LOGGER.error("There is no localization encoding parameter in config property.");
+		}
+		LOGGER.info("Will use encoding: " + encoding);
+		return encoding.toUpperCase();
 	}
 
 }

@@ -3,14 +3,18 @@ package com.qaprosoft.carina.core.foundation.webdriver.device;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.openqa.selenium.Capabilities;
 
+import com.qaprosoft.carina.commons.models.RemoteDevice;
 import com.qaprosoft.carina.core.foundation.commons.SpecialKeywords;
 import com.qaprosoft.carina.core.foundation.utils.Configuration;
 import com.qaprosoft.carina.core.foundation.utils.Configuration.Parameter;
@@ -22,120 +26,72 @@ import com.qaprosoft.carina.core.foundation.utils.android.recorder.utils.Platfor
 import com.qaprosoft.carina.core.foundation.utils.android.recorder.utils.ProcessBuilderExecutor;
 import com.qaprosoft.carina.core.foundation.utils.factory.DeviceType;
 import com.qaprosoft.carina.core.foundation.utils.factory.DeviceType.Type;
-import com.qaprosoft.carina.core.foundation.webdriver.appium.status.AppiumStatus;
 
-//Motorola|ANDROID|4.4|T01130FJAD|http://localhost:4725/wd/hub;Samsung_S4|ANDROID|4.4.2|5ece160b|http://localhost:4729/wd/hub;
-public class Device
+public class Device extends RemoteDevice
 {
 	private static final Logger LOGGER = Logger.getLogger(Device.class);
 
-	private String name;
-	private String type;
-
-	private String os;
-	private String osVersion;
-	private String udid;
-	@Deprecated
-	private String seleniumServer;
-
-	private String remoteURL;
-	
-	private boolean isAppInstalled = false;
+	/**
+     * ENABLED only in case of availability of parameter - 'uninstall_related_apps'.
+     * Store udids of devices where related apps were uninstalled
+     */
+    private static List<String> clearedDeviceUdids = new ArrayList<>();
 	
 	AdbExecutor executor = new AdbExecutor();
 
+	
 	public Device()
 	{
-		this("", "", "", "", "", "", "");
+		this("", "", "", "", "", "");
 	}
 
-	public Device(String name, String type, String os, String osVersion, String udid, String seleniumServer, String remoteURL)
+	public Device(String name, String type, String os, String osVersion, String udid, String remoteURL)
 	{
-		this.name = name;
-		this.type = type;
-		this.os = os;
-		this.osVersion = osVersion;
-		this.udid = udid;
-		this.seleniumServer = seleniumServer;
-		this.remoteURL = remoteURL;
-	}
-
-	public String getName()
-	{
-		return name;
-	}
-
-	public void setName(String name)
-	{
-		this.name = name;
-	}
-
-	public String getOs()
-	{
-		return os;
-	}
-
-	public void setOs(String os)
-	{
-		this.os = os;
-	}
-
-	public String getOsVersion()
-	{
-		return osVersion;
-	}
-
-	public void setOsVersion(String osVersion)
-	{
-		this.osVersion = osVersion;
-	}
-
-	public String getUdid()
-	{
-		return udid;
-	}
-
-	public void setUdid(String udid)
-	{
-		this.udid = udid;
-	}
-
-	public String getSeleniumServer()
-	{
-		return seleniumServer;
-	}
-
-	public void setSeleniumServer(String seleniumServer)
-	{
-		this.seleniumServer = seleniumServer;
+		setName(name);
+		setType(type);
+		setOs(os);
+		setOsVersion(osVersion);
+		setUdid(udid);
+		setRemoteURL(remoteURL);
 	}
 	
-	public String getRemoteURL() {
-		return remoteURL;
+	public Device(RemoteDevice remoteDevice)
+	{
+		setName(remoteDevice.getName());
+		setType(remoteDevice.getType());
+		setOs(remoteDevice.getOs());
+		setOsVersion(remoteDevice.getOsVersion());
+		setUdid(remoteDevice.getUdid());
+		setRemoteURL(remoteDevice.getRemoteURL());
 	}
-
-	public void setRemoteURL(String remoteURL) {
-		this.remoteURL = remoteURL;
+	
+	public Device(Capabilities capabilities)
+	{
+		setName(capabilities.getCapability("deviceName").toString());
+		setType(capabilities.getCapability("deviceType").toString());
+		setOs(capabilities.getCapability("platformName").toString());
+		setOsVersion(capabilities.getCapability("platformVersion").toString());
+		setUdid(capabilities.getCapability("udid").toString());
 	}
-
+	
 	public boolean isPhone()
 	{
-		return type.equalsIgnoreCase(SpecialKeywords.PHONE);
+		return getType().equalsIgnoreCase(SpecialKeywords.PHONE);
 	}
 
 	public boolean isTablet()
 	{
-		return type.equalsIgnoreCase(SpecialKeywords.TABLET);
+		return getType().equalsIgnoreCase(SpecialKeywords.TABLET);
 	}
 
 	public boolean isTv()
 	{
-		return type.equalsIgnoreCase(SpecialKeywords.TV);
+		return getType().equalsIgnoreCase(SpecialKeywords.TV);
 	}
 
-	public Type getType()
+	public Type getDeviceType()
 	{
-		if (os.equalsIgnoreCase(SpecialKeywords.ANDROID))
+		if (getOs().equalsIgnoreCase(SpecialKeywords.ANDROID))
 		{
 			if (isTablet())
 			{
@@ -147,7 +103,7 @@ public class Device
 			}
 			return Type.ANDROID_PHONE;
 		} 
-		else if (os.equalsIgnoreCase(SpecialKeywords.IOS))
+		else if (getOs().equalsIgnoreCase(SpecialKeywords.IOS))
 		{
 			if (isTablet())
 			{
@@ -159,15 +115,15 @@ public class Device
 	}
 	
 	public String toString() {
-		return String.format("name: %s; type: %s; os: %s; osVersion: %s; udid: %s; selenium: %s; remoteURL: %s", name,
-				type, os, osVersion, udid, seleniumServer, remoteURL);
+		return String.format("name: %s; type: %s; os: %s; osVersion: %s; udid: %s; remoteURL: %s", getName(),
+				getType(), getOs(), getOsVersion(), getUdid(), getRemoteURL());
 	}
 	
 	public boolean isNull() {
-		if (name == null || seleniumServer == null) {
+		if (getName() == null) {
 			return true;
 		}
-		return name.isEmpty() || seleniumServer.isEmpty();
+		return getName().isEmpty();
 	}
 
 	public void connectRemote() {
@@ -192,9 +148,11 @@ public class Device
 		if (isNull())
 			return;
 
-		LOGGER.info("adb disconnect " + getRemoteURL());
-		String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", getRemoteURL());
-		executor.execute(cmd);
+		// [VD] No need to do adb command as stopping STF session do it correctly 
+//		LOGGER.info("adb disconnect " + getRemoteURL());
+//		String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", getRemoteURL());
+//		executor.execute(cmd);
+		
 	}
 	
 	
@@ -307,17 +265,17 @@ public class Device
         }
 
         if (screenState == null) {
-            LOGGER.error(udid
+            LOGGER.error(getUdid()
                     + ": Unable to determine existing device screen state!");
             return screenState; //no actions required if state is not recognized.
         }
 
         if (screenState) {
-            LOGGER.info(udid + ": screen is ON");
+            LOGGER.info(getUdid() + ": screen is ON");
         }
 
         if (!screenState) {
-            LOGGER.info(udid + ": screen is OFF");
+            LOGGER.info(getUdid() + ": screen is OFF");
         }
 
         return screenState;
@@ -348,11 +306,11 @@ public class Device
 
             screenState = getScreenState();
             if (screenState) {
-                LOGGER.error(udid + ": screen is still ON!");
+                LOGGER.error(getUdid() + ": screen is still ON!");
             }
 
             if (!screenState) {
-                LOGGER.info(udid + ": screen turned off.");
+                LOGGER.info(getUdid() + ": screen turned off.");
             }
         }
     }
@@ -384,11 +342,11 @@ public class Device
             // verify that screen is Off now
             screenState = getScreenState();
             if (!screenState) {
-                LOGGER.error(udid + ": screen is still OFF!");
+                LOGGER.error(getUdid() + ": screen is still OFF!");
             }
 
             if (screenState) {
-                LOGGER.info(udid + ": screen turned on.");
+                LOGGER.info(getUdid() + ": screen turned on.");
             }
         }
     }
@@ -420,9 +378,6 @@ public class Device
             return;
         }
         
-        if (!Configuration.getBoolean(Parameter.MOBILE_APP_CLEAR_CACHE))
-            return;
-
         if (isNull())
         	return;
 
@@ -484,7 +439,7 @@ public class Device
         executor.execute(cmd);
     }
     
-    public void reinstallApp() {
+/*    public void reinstallApp() {
         if (!Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
             return;
         }
@@ -536,7 +491,7 @@ public class Device
         	installApp(mobileApp);
         	isAppInstalled = true;
         }
-    }
+    }*/
     
     public String[] getInstalledApkVersion(String packageName) {
         //adb -s UDID shell dumpsys package PACKAGE | grep versionCode
@@ -603,55 +558,6 @@ public class Device
         return res;
     }
 
-    
-    public void restartAppium() {
-        if (!Configuration.getBoolean(Parameter.MOBILE_APPIUM_RESTART))
-            return;
-        
-        if (isNull())
-        	return;
-
-        stopAppium();
-        startAppium();
-    }
-
-    // TODO: think about moving shutdown/startup scripts into external property and make it cross platform 
-    public void stopAppium() {
-        if (!Configuration.getBoolean(Parameter.MOBILE_APPIUM_RESTART))
-            return;
-        
-        if (isNull())
-        	return;
-
-        LOGGER.info("Stopping appium...");
-
-        String cmdLine = Configuration.get(Parameter.MOBILE_TOOLS_HOME) + "/stopNodeAppium.sh";
-        String[] cmd = CmdLine.insertCommandsAfter(cmdLine.split(" "), getUdid());
-        List<String> output = executor.execute(cmd);
-        for (String line : output) {
-            LOGGER.debug(line);
-        }
-    }
-
-    public void startAppium() {
-        if (!Configuration.getBoolean(Parameter.MOBILE_APPIUM_RESTART))
-            return;
-        
-        if (isNull())
-        	return;
-
-        LOGGER.info("Starting appium...");
-
-        String cmdLine = Configuration.get(Parameter.MOBILE_TOOLS_HOME) + "/startNodeAppium.sh";
-        String[] cmd = CmdLine.insertCommandsAfter(cmdLine.split(" "), getUdid(), "&");
-        List<String> output = executor.execute(cmd);
-        for (String line : output) {
-            LOGGER.debug(line);
-        }
-
-        AppiumStatus.waitStartup(getSeleniumServer(), 30);
-    }
-    
     public List<String> execute(String[] cmd) {
     	return executor.execute(cmd);
     }
@@ -685,13 +591,49 @@ public class Device
     }
     
     public String getAdbName() {
-    	if (!StringUtils.isEmpty(remoteURL)) {
-    		return remoteURL;
-    	} else if (!StringUtils.isEmpty(udid)) {
-    		return udid;
-    	} else {
-    		return "";
-    	}
+        if (!StringUtils.isEmpty(getRemoteURL())) {
+            return getRemoteURL();
+        } else if (!StringUtils.isEmpty(getUdid())) {
+            return getUdid();
+        } else {
+            return "";
+        }
+    }
+    
+    /**
+     * Related apps will be uninstall just once for a test launch.
+     */
+    public void uninstallRelatedApps() {
+        if (getOs().equalsIgnoreCase(Type.ANDROID_PHONE.getFamily()) && Configuration.getBoolean(Parameter.UNINSTALL_RELATED_APPS)
+                && !clearedDeviceUdids.contains(getUdid())) {
+            String mobileApp = Configuration.getMobileApp();
+            LOGGER.debug("Current mobile app: ".concat(mobileApp));
+            String tempPackage;
+            try {
+                tempPackage = getApkPackageName(mobileApp);
+            } catch (Exception e) {
+                LOGGER.info("Error during extraction of package using aapt. It will be extracted from config");
+                tempPackage = R.CONFIG.get(SpecialKeywords.MOBILE_APP_PACKAGE);
+            }
+            final String mobilePackage = tempPackage;
+            LOGGER.debug("Current mobile package: ".concat(mobilePackage));
+            // in general it has following naming convention:
+            // com.projectname.app
+            // so we need to remove all apps realted to 1 project
+            String projectName = mobilePackage.split("\\.")[1];
+            LOGGER.debug("Apps related to current project will be uninstalled. Extracted project: ".concat(projectName));
+            List<String> installedPackages = getInstalledPackages();
+            // extracted package syntax: package:com.project.app            
+            installedPackages.parallelStream()
+                    .filter(packageName -> (packageName.matches(String.format(".*\\.%s\\..*", projectName))
+                            && !packageName.equalsIgnoreCase(String.format("package:%s", mobilePackage))))
+                    .collect(Collectors.toList()).forEach((k) -> uninstallApp(k.split(":")[1]));         
+            clearedDeviceUdids.add(getUdid());
+            LOGGER.debug("Udids of devices where applciation was already reinstalled: ".concat(clearedDeviceUdids.toString()));
+        } else {
+            LOGGER.debug("Related apps had been already uninstalled or flag uninstall_related_apps is disabled.");
+        }
+        
     }
 
 }

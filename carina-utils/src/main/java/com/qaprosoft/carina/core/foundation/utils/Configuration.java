@@ -172,7 +172,9 @@ public class Configuration
 		RETRY_COUNT("retry_count"),
 
 		ENABLE_L10N("enable_l10n"),
-		
+
+		L10N_ENCODING("l10n_encoding"),
+
 		LOCALE("locale"),
 		
 		ENABLE_I18N("enable_i18n"),
@@ -216,18 +218,6 @@ public class Configuration
         JIRA_CREATE_NEW_TICKET("jira_create_new_ticket"),
         
         // Appium 1.1.x mobile capabilities: iOS and Android
-        MOBILE_APP_PREUPGRADE("mobile_app_preupgrade"),
-        
-        MOBILE_APP_UNINSTALL("mobile_app_uninstall"),
-        
-        MOBILE_APP_INSTALL("mobile_app_install"),
-        
-        MOBILE_APP_CLEAR_CACHE("mobile_app_clear_cache"),
-        
-        MOBILE_APPIUM_RESTART("mobile_appium_restart"),
-        
-		MOBILE_TOOLS_HOME("mobile_tools_home"),
-		
 		MOBILE_SCREEN_SWITCHER("mobile_screen_switcher"),
 		
 		//DROPBOX_ACCESS_TOKEN("dropbox_access_token"), 
@@ -268,8 +258,10 @@ public class Configuration
 		HOCKEYAPP_LOCAL_STORAGE("hockeyapp_local_storage"),
 		
 		//For localization parser
-		ADD_NEW_LOCALIZATION("add_new_localization"), 
-		
+		ADD_NEW_LOCALIZATION("add_new_localization"),
+
+		ADD_NEW_LOCALIZATION_ENCODING("add_new_localization_encoding"),
+
 		ADD_NEW_LOCALIZATION_PATH("add_new_localization_path"),
 		
 		ADD_NEW_LOCALIZATION_PROPERTY_NAME("add_new_localization_property_name"),
@@ -293,7 +285,9 @@ public class Configuration
 		//HealthCheck
 		HEALTH_CHECK_CLASS("health_check_class"),
 		
-		HEALTH_CHECK_METHODS("health_check_methods")
+		HEALTH_CHECK_METHODS("health_check_methods"),
+		
+		UNINSTALL_RELATED_APPS("uninstall_related_apps")
 		;
 
 		private final String key;
