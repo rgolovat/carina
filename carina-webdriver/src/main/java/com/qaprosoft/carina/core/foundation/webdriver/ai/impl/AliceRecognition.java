@@ -17,6 +17,9 @@ package com.qaprosoft.carina.core.foundation.webdriver.ai.impl;
 
 import java.io.File;
 import java.util.List;
+import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.apache.commons.configuration2.CombinedConfiguration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
@@ -26,14 +29,20 @@ import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.tree.MergeCombiner;
 import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.qaprosoft.alice.client.AliceClient;
 import com.qaprosoft.alice.client.AliceClient.Response;
 import com.qaprosoft.alice.models.dto.RecognitionMetaType;
+import com.qaprosoft.carina.core.foundation.report.ReportContext;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.IRecognition;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.Label;
+import com.qaprosoft.carina.core.foundation.webdriver.augmenter.DriverAugmenter;
+
+import ru.yandex.qatools.ashot.AShot;
+import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
 
 /**
  * AliceRecognition - initializes Alice HTTP client and processes response results.
@@ -87,23 +96,34 @@ public class AliceRecognition implements IRecognition
 		}
 	};
 	
-	public RecognitionMetaType recognize(Label label, String caption, File screenshot, String url)
+	@Override
+	public RecognitionMetaType recognize(Label label, String caption, WebDriver driver)
 	{
 		RecognitionMetaType result = null;
 
 		// send request anyway to Alice for recognition to record this particular screen
 		Response<List<RecognitionMetaType>> response = null;
 		
-		if(urlCache.equals(url))
+		if(urlCache.equals(driver.getCurrentUrl()))
 		{
 			response = responseCache;
 		}
 		else
 		{
-			response = client.recognize(screenshot);
+			File screen = new File(ReportContext.getTempDir() + File.separator +  UUID.randomUUID().toString() + ".png");
+			try
+			{
+				screen.createNewFile();
+				ImageIO.write(new AShot().shootingStrategy(ShootingStrategies.viewportPasting(100)).takeScreenshot(new DriverAugmenter().augment(driver)).getImage(), "PNG", screen);
+			}
+			catch (Exception e) {
+				LOGGER.error(e.getMessage());
+			}
+			
+			response = client.recognize(screen);
 			
 			responseCache = response;
-			urlCache = url;
+			urlCache = driver.getCurrentUrl();
 		}
 		
 		// try to search only if AI label and caption are provided
@@ -119,11 +139,5 @@ public class AliceRecognition implements IRecognition
 	public boolean isEnabled()
 	{
 		return enabled;
-	}
-
-	@Override
-	public RecognitionMetaType recognize(Label label, String caption, File screenshot) 
-	{
-		return recognize(label, caption, screenshot, null);
 	}
 }

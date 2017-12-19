@@ -143,7 +143,7 @@ public class ExtendedWebElement {
 		
 		LOGGER.debug("There is null WebElement object. Trying to find dynamic element using By: " + by.toString());
 		final WebDriver drv = getDriver();
-		setImplicitTimeout(Math.max(1,  Configuration.getLong(Parameter.RETRY_INTERVAL)/1000));
+		setImplicitTimeout(0);
 		wait = new WebDriverWait(drv, timeout, RETRY_TIME);
 		try {
 			wait.until((Function<WebDriver, Object>) dr -> {

@@ -15,11 +15,11 @@
  */
 package com.qaprosoft.carina.core.foundation.webdriver.ai;
 
-import java.io.File;
+import org.openqa.selenium.WebDriver;
 
 import com.qaprosoft.alice.models.dto.RecognitionMetaType;
 
 public interface IRecognition
 {
-	public RecognitionMetaType recognize(Label label, String caption, File screenshot);
+	public RecognitionMetaType recognize(Label label, String caption, WebDriver driver);
 }

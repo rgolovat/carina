@@ -15,12 +15,8 @@
  */
 package com.qaprosoft.carina.core.foundation.webdriver.locator;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.UUID;
-
-import javax.imageio.ImageIO;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.By;
@@ -35,19 +31,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.qaprosoft.alice.models.dto.RecognitionMetaType;
-import com.qaprosoft.carina.core.foundation.report.ReportContext;
 import com.qaprosoft.carina.core.foundation.webdriver.DriverPool;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.FindByAI;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.Label;
 import com.qaprosoft.carina.core.foundation.webdriver.ai.impl.AliceRecognition;
-import com.qaprosoft.carina.core.foundation.webdriver.augmenter.DriverAugmenter;
 import com.qaprosoft.carina.core.foundation.webdriver.decorator.annotations.Predicate;
 
 import io.appium.java_client.MobileBy;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
-import ru.yandex.qatools.ashot.AShot;
-import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
 
 /**
  * The default element locator, which will lazily locate an element or an element list on a page. This class is designed
@@ -92,6 +84,8 @@ public class ExtendedElementLocator implements ElementLocator
 		{
 			this.aiCaption = field.getAnnotation(FindByAI.class).caption();
 			this.aiLabel = field.getAnnotation(FindByAI.class).label();
+			// TODO: investigate if we need cache for AI elements
+			this.shouldCache = true;
 		}
 
 		this.isPredicate = false;
@@ -208,16 +202,7 @@ public class ExtendedElementLocator implements ElementLocator
 	{
 		WebElement element = null;
 		
-		File screen = new File(ReportContext.getTempDir() + File.separator +  UUID.randomUUID().toString() + ".png");
-		try
-		{
-			screen.createNewFile();
-			ImageIO.write(new AShot().shootingStrategy(ShootingStrategies.viewportPasting(100)).takeScreenshot(new DriverAugmenter().augment(drv)).getImage(), "PNG", screen);
-		}
-		catch (Exception e) {
-			LOGGER.error(e.getMessage());
-		}
-		RecognitionMetaType result = AliceRecognition.INSTANCE.recognize(aiLabel, aiCaption, screen, drv.getCurrentUrl());
+		RecognitionMetaType result = AliceRecognition.INSTANCE.recognize(aiLabel, aiCaption, drv);
 		
 		if(result != null)
 		{
@@ -310,7 +295,7 @@ public class ExtendedElementLocator implements ElementLocator
 		
 		try
 		{
-			final long timeout = 5000;
+			final long timeout = 2500;
 			
 			String js =  
 					"var x = " + tlX + ";" +
