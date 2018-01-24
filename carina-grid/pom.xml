@@ -44,6 +44,10 @@
       <artifactId>httpclient</artifactId>
       <version>${apache-http.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-exec</artifactId>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
