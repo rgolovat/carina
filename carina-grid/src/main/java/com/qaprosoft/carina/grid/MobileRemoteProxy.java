@@ -18,6 +18,7 @@ package com.qaprosoft.carina.grid;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.apache.http.client.fluent.Request;
 import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.internal.Registry;
 import org.openqa.grid.internal.TestSession;
@@ -80,6 +81,7 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 	@Override
 	public void beforeSession(TestSession session) {
 		super.beforeSession(session);
+		restartNode(session);
 		if (STF.isSTFRequired(session.getSlot().getCapabilities(), session.getRequestedCapabilities())) {
 			STF.reserveDevice(String.valueOf(session.getSlot().getCapabilities().get("udid")));
 		}
@@ -90,6 +92,21 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 		super.afterSession(session);
 		if (STF.isSTFRequired(session.getSlot().getCapabilities(), session.getRequestedCapabilities())) {
 			STF.returnDevice(String.valueOf(session.getSlot().getCapabilities().get("udid")));
+		}
+	}
+	
+	/**
+	 * Restarts node if restartURL is provided in capabilities
+	 * @param session - test session
+	 */
+	private void restartNode(TestSession session) {
+		try {
+			if(session.getSlot().getCapabilities().containsKey("restartURL")) {
+				Request.Get(String.valueOf(session.getSlot().getCapabilities().get("restartURL"))).execute();
+			}
+		} 
+		catch (Exception e) {
+			LOGGER.warning(e.getMessage());
 		}
 	}
 }
