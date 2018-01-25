@@ -103,6 +103,8 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 		try {
 			if(session.getSlot().getCapabilities().containsKey("restartURL")) {
 				Request.Get(String.valueOf(session.getSlot().getCapabilities().get("restartURL"))).execute();
+				// TODO: remove explicit timeout
+				Thread.sleep(10000);
 			}
 		} 
 		catch (Exception e) {
