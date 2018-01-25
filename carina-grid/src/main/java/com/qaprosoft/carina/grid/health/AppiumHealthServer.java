@@ -1,6 +1,7 @@
 package com.qaprosoft.carina.grid.health;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
@@ -24,16 +25,19 @@ public class AppiumHealthServer
 {	
 	private static String HOST = "localhost";
 	private static String PORT = "8020";
+	private static String SCRIPTS = ClassLoader.getSystemResource("scripts").getPath();
 	
     public static void main(String[] args) throws Exception
     {
     		// Log4j basic configuration
     		BasicConfigurator.configure();
     	
+    		// java -cp carina-grid.jar com.qaprosoft.carina.grid.health.AppiumHealthServer localhost 8082 /Users/build/tools/grid
     		if(args.length > 0)
     		{
     			HOST = args[0];
     			PORT = args[1];
+    			SCRIPTS = args[2];
     		}
     	
         Server server = new Server(Integer.valueOf(PORT));
@@ -128,7 +132,7 @@ public class AppiumHealthServer
     			argString += " " + arg;
     		}
     		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-	    CommandLine commandline = CommandLine.parse(ClassLoader.getSystemResource(script).getPath() + argString);
+	    CommandLine commandline = CommandLine.parse(SCRIPTS + File.separator + script + argString);
 	    DefaultExecutor exec = new DefaultExecutor();
 	    PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
 	    exec.setStreamHandler(streamHandler);
