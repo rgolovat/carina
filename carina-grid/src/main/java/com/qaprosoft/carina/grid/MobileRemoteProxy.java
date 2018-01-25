@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.apache.http.client.fluent.Request;
+import org.apache.http.client.fluent.Response;
 import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.internal.Registry;
 import org.openqa.grid.internal.TestSession;
@@ -68,9 +69,10 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 					&& !STF.isDeviceAvailable((String) testslot.getCapabilities().get("udid"))) {
 				return null;
 			}
-
+			
 			TestSession session = testslot.getNewSession(requestedCapability);
-
+//			restartNode(session);
+			
 			if (session != null) {
 				return session;
 			}
@@ -81,7 +83,6 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 	@Override
 	public void beforeSession(TestSession session) {
 		super.beforeSession(session);
-		restartNode(session);
 		if (STF.isSTFRequired(session.getSlot().getCapabilities(), session.getRequestedCapabilities())) {
 			STF.reserveDevice(String.valueOf(session.getSlot().getCapabilities().get("udid")));
 		}
@@ -95,20 +96,67 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 		}
 	}
 	
-	/**
-	 * Restarts node if restartURL is provided in capabilities
-	 * @param session - test session
-	 */
-	private void restartNode(TestSession session) {
-		try {
-			if(session.getSlot().getCapabilities().containsKey("restartURL")) {
-				Request.Get(String.valueOf(session.getSlot().getCapabilities().get("restartURL"))).execute();
-				// TODO: remove explicit timeout
-				Thread.sleep(10000);
+//	/**
+//	 * Restarts node if restartURL is provided in capabilities
+//	 * @param session - test session
+//	 */
+//	private static TestSession restartNode(TestSession session) {
+//		if(session != null && session.getSlot().getCapabilities().containsKey("restartURL")) {
+//			try {
+//				Request.Get(String.valueOf(session.getSlot().getCapabilities().get("restartURL"))).execute();
+//				for(int i = 0; i < 5; i++)
+//				{
+//					try
+//					{
+//						Thread.sleep(5000);
+//						Response rs = Request.Get(session.getSlot().getRemoteURL().toString()).connectTimeout(5000).execute();
+//						if(rs.returnResponse().getStatusLine().getStatusCode() == 200) {
+//							return session;
+//						}
+//						
+//					} 
+//					catch (Exception e) {
+//						LOGGER.warning(e.getMessage());
+//					}
+//				}
+//				session = null;
+//			} 
+//			catch (Exception e) {
+//				LOGGER.warning(e.getMessage());
+//			}
+//		}
+//		return session;
+//	}
+	
+	private static TestSession restartNode(String url, String restartURL) {
+		if(restartURL != null) {
+			try {
+//				Request.Get(restartURL).execute();
+				for(int i = 0; i < 5; i++)
+				{
+					try
+					{
+						Thread.sleep(5000);
+						Response rs = Request.Get(url).connectTimeout(5000).execute();
+						if(rs.returnResponse().getStatusLine().getStatusCode() == 200) {
+							return null;
+						}
+						
+					} 
+					catch (Exception e) {
+						LOGGER.warning(e.getMessage());
+					}
+				}
+			} 
+			catch (Exception e) {
+				LOGGER.warning(e.getMessage());
 			}
-		} 
-		catch (Exception e) {
-			LOGGER.warning(e.getMessage());
 		}
+		return null;
+	}
+	
+	public static void main(String[] args)
+	{
+		restartNode("http://192.168.88.101:4842", "http://37.17.63.22:8082/nodes/restart?udid=");
 	}
 }

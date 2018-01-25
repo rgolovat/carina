@@ -69,9 +69,13 @@ public class AppiumHealthServer
 				final String appiums = runScript("list_appium.sh");
 				for(String appium : appiums.split("\n"))
                  {
-                		String pid = appium.trim().split(" +")[1];
-                		String udid = appium.trim().split("/configs/")[1].replace(".json", "");
-                		response.getWriter().println(String.format("<b>%s</b> <span>%s</span> <a href=\"%s\">Restart</a><br/>", pid, udid, String.format("http://%s:%s/nodes/restart?udid=%s", HOST, PORT, udid)));
+					try
+					{
+						String pid = appium.trim().split(" +")[1];
+	                		String udid = appium.trim().split("/configs/")[1].replace(".json", "");
+	                		response.getWriter().println(String.format("<b>%s</b> <span>%s</span> <a href=\"%s\">Restart</a><br/>", pid, udid, String.format("http://%s:%s/nodes/restart?udid=%s", HOST, PORT, udid)));
+					}
+                		catch (Exception e) {}
                  }
 			}
 			catch(Exception e)
