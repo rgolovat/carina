@@ -72,7 +72,6 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 			TestSession session = testslot.getNewSession(requestedCapability);
 			
 			if (session != null) {
-				restartNode(session.getSlot());
 				return session;
 			}
 		}
@@ -93,6 +92,7 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 		if (STF.isSTFRequired(session.getSlot().getCapabilities(), session.getRequestedCapabilities())) {
 			STF.returnDevice(String.valueOf(session.getSlot().getCapabilities().get("udid")));
 		}
+		restartNode(session.getSlot());
 	}
 	
 	/**
@@ -103,7 +103,7 @@ public class MobileRemoteProxy extends DefaultRemoteProxy {
 		try {
 			if(slot.getCapabilities().containsKey("restartURL")) {
 				Request.Get(String.valueOf(slot.getCapabilities().get("restartURL"))).execute();
-				Thread.sleep(30000);
+				Thread.sleep(15000);
 			}
 		} 
 		catch (Exception e) {
