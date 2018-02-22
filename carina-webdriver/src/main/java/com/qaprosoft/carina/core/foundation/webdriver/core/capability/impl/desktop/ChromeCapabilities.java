@@ -15,7 +15,6 @@
  *******************************************************************************/
 package com.qaprosoft.carina.core.foundation.webdriver.core.capability.impl.desktop;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -31,12 +30,11 @@ public class ChromeCapabilities extends AbstractCapabilities {
     public DesiredCapabilities getCapability(String testName) {
         DesiredCapabilities capabilities = new DesiredCapabilities();
         capabilities = initBaseCapabilities(capabilities, BrowserType.CHROME, testName);
-        capabilities.setCapability("chrome.switches", Arrays.asList("--start-maximized", "--ignore-ssl-errors"));
         capabilities.setCapability(CapabilityType.ACCEPT_SSL_CERTS, true);
         capabilities.setCapability(CapabilityType.TAKES_SCREENSHOT, false);
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("test-type");
+        options.addArguments("test-type", "--start-maximized", "--ignore-ssl-errors");
 
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
             HashMap<String, Object> chromePrefs = new HashMap<String, Object>();
