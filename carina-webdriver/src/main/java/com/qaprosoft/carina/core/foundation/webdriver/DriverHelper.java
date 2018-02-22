@@ -713,6 +713,18 @@ public class DriverHelper {
             drv.switchTo().alert().accept();
         }
 
+		String browser = Configuration.get(Parameter.BROWSER);
+		if ("chrome".equals(browser)) {
+			//TODO: hardcoded 1920x1080 screensize can be a problem.
+			drv.manage().window().setSize(new Dimension(1920, 1080));
+		} else {
+			try {
+				drv.manage().window().maximize();
+			} catch (Exception e) {
+				LOGGER.error(e.getMessage(), e);
+			}
+		}
+		
         String msg = Messager.OPEN_URL.info(url);
         Screenshot.capture(driver, msg);
     }
