@@ -222,6 +222,8 @@ public class Configuration {
         // Appium 1.1.x mobile capabilities: iOS and Android
         MOBILE_SCREEN_SWITCHER("mobile_screen_switcher"),
 
+        MAX_LOG_FILE_SIZE("max_log_file_size"),
+
         // DROPBOX_ACCESS_TOKEN("dropbox_access_token"),
 
         VIDEO_RECORDING("video_recording"),

@@ -21,6 +21,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 
+import com.qaprosoft.carina.core.foundation.utils.Configuration;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
@@ -32,8 +33,8 @@ import com.qaprosoft.carina.core.foundation.report.ReportContext;
 public class ThreadLogAppender extends AppenderSkeleton {
     // single buffer for each thread test.log file
     private final ThreadLocal<BufferedWriter> testLogBuffer = new ThreadLocal<BufferedWriter>();
-    private final ThreadLocal<BufferedWriter> apiLogBuffer = new ThreadLocal<BufferedWriter>();
-
+    private long maxBytes = Configuration.getLong(Configuration.Parameter.MAX_LOG_FILE_SIZE);;
+    private long bytesWritten;
     @Override
     public void append(LoggingEvent event) {
         // TODO: [VD] OBLIGATORY double check and create separate unit test for this case
@@ -45,27 +46,20 @@ public class ThreadLogAppender extends AppenderSkeleton {
          */
 
         try {
-            File currentLogFile = new File(ReportContext.getTestDir() + "/test.log");
-            BufferedWriter fwlog, fw = testLogBuffer.get();
-            BufferedWriter fwapi = apiLogBuffer.get();
-            boolean apiMethod = event.getLoggerName().contains("AbstractApiMethod");
-            if (apiMethod) {
-                fw = fwapi;
-                currentLogFile = new File(ReportContext.getTestDir() + "/http.log");
-            }
 
+            BufferedWriter fw = testLogBuffer.get();
             if (fw == null) {
                 // 1st request to log something for this thread/test
-                if (!currentLogFile.exists())
-                    currentLogFile.createNewFile();
-                fw = new BufferedWriter(new FileWriter(currentLogFile, true));
-                if (apiMethod) {
-                    apiLogBuffer.set(fw);
-                } else {
-                    testLogBuffer.set(fw);
+                File testLogFile = new File(ReportContext.getTestDir() + "/test.log");
+                if (!testLogFile.exists()){
+                    testLogFile.createNewFile();
+                    bytesWritten = 0;
                 }
-            }
 
+                fw = new BufferedWriter(new FileWriter(testLogFile, true));
+                testLogBuffer.set(fw);
+
+            }
 
             if (event != null) {
                 // append time, thread, class name and device name if any
@@ -81,7 +75,9 @@ public class ThreadLogAppender extends AppenderSkeleton {
                 String logLevel = event.getLevel().toString();
 
                 String message = "[%s] [%s] [%s] [%s] %s";
-                fw.write(String.format(message, time, fileName, threadId, logLevel, event.getMessage().toString()));
+                message = String.format(message, time, fileName, threadId, logLevel, event.getMessage().toString());
+                ensureCapacity(message.length());
+                fw.write(message);
             } else {
                 fw.write("null");
             }
@@ -106,20 +102,18 @@ public class ThreadLogAppender extends AppenderSkeleton {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        try {
-            BufferedWriter fw = apiLogBuffer.get();
-            if (fw != null) {
-                fw.close();
-                apiLogBuffer.remove();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
     }
 
     @Override
     public boolean requiresLayout() {
         return false;
+    }
+
+    private void ensureCapacity(int len) throws IOException {
+        long newBytesWritten = this.bytesWritten + len;
+        long maxBytes = this.maxBytes *1024 * 1024;
+        if (newBytesWritten > maxBytes)
+            throw new IOException("File size exceeded: " + newBytesWritten + " > " + this.maxBytes);
+        this.bytesWritten = newBytesWritten;
     }
 }
